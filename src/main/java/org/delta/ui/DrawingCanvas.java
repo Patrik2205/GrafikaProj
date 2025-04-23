@@ -1,5 +1,8 @@
 package org.delta.ui;
 import org.delta.raster.CustomRaster;
+import org.delta.shapes.*;
+import org.delta.shapes.Shape;
+import org.delta.util.LineStyle;
 
 import javax.swing.*;
 import java.awt.*;

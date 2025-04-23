@@ -58,9 +58,22 @@ public class PolygonShape implements Shape {
 
         // For filled polygons, check if point is inside
         if (filled) {
-            return raster.isPointInPolygon(p.x, p.y, points);
-        }
+            // Implement point-in-polygon test directly here
+            boolean inside = false;
+            int nPoints = points.size();
 
+            for (int i = 0, j = nPoints - 1; i < nPoints; j = i++) {
+                Point pi = points.get(i);
+                Point pj = points.get(j);
+
+                if (((pi.y > p.y) != (pj.y > p.y)) &&
+                        (p.x < (pj.x - pi.x) * (p.y - pi.y) / (pj.y - pi.y) + pi.x)) {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
+        }
         // For unfilled polygons, check if point is near any edge
         for (int i = 0; i < points.size(); i++) {
             Point p1 = points.get(i);

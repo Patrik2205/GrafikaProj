@@ -1,4 +1,6 @@
 package org.delta.ui;
+import org.delta.util.LineStyle;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
