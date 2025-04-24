@@ -325,7 +325,15 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void setCurrentTool(String tool) {
+        // If we're switching away from the Polygon tool and have a valid polygon in progress
+        if (currentTool.equals("Polygon") && !tool.equals("Polygon") &&
+                polygonPoints.size() >= 3 && currentShape instanceof PolygonShape) {
+            // Save the polygon to the shapes list before switching tools
+            shapes.add(currentShape);
+        }
+
         currentTool = tool;
+
         if (!tool.equals("Polygon")) {
             polygonPoints.clear();
             currentShape = null;
