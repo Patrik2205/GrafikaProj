@@ -121,20 +121,16 @@ public class DrawingCanvas extends JPanel {
 
                 switch (currentTool) {
                     case "Line":
-                        currentShape = new LineShape(lastPoint, lastPoint,
-                                currentColor, currentThickness, currentLineStyle);
+                        currentShape = new LineShape(lastPoint, lastPoint, currentColor, currentThickness, currentLineStyle);
                         break;
                     case "Rectangle":
-                        currentShape = new RectangleShape(lastPoint, lastPoint,
-                                currentColor, currentThickness, currentLineStyle);
+                        currentShape = new RectangleShape(lastPoint, lastPoint, currentColor, currentThickness, currentLineStyle);
                         break;
                     case "Square":
-                        currentShape = new SquareShape(lastPoint, lastPoint,
-                                currentColor, currentThickness, currentLineStyle);
+                        currentShape = new SquareShape(lastPoint, lastPoint, currentColor, currentThickness, currentLineStyle);
                         break;
                     case "Circle":
-                        currentShape = new CircleShape(lastPoint, lastPoint,
-                                currentColor, currentThickness, currentLineStyle);
+                        currentShape = new CircleShape(lastPoint, lastPoint, currentColor, currentThickness, currentLineStyle);
                         break;
                 }
 

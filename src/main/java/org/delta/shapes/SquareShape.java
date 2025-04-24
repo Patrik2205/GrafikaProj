@@ -1,12 +1,14 @@
 package org.delta.shapes;
-import org.delta.raster.CustomRaster;
 
-import java.awt.Color;
+import org.delta.raster.CustomRaster;
+import org.delta.shapes.Shape;
+
 import java.awt.Point;
+import java.awt.Color;
 
 public class SquareShape implements Shape {
-    private Point p1;
-    private Point p2;
+    private Point p1; // The starting point (anchor point)
+    private Point p2; // The current/ending point
     private Color color;
     private Color fillColor;
     private int thickness;
@@ -22,22 +24,56 @@ public class SquareShape implements Shape {
         this.filled = false;
     }
 
+    /**
+     * Calculate the square dimensions based on the dragging direction
+     * @return int array with [left, top, right, bottom]
+     */
+    private int[] calculateSquareDimensions() {
+        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
+        int left, top, right, bottom;
+
+        // Determine the actual corners based on drag direction
+        if (p2.x >= p1.x && p2.y >= p1.y) {
+            // Dragging bottom-right
+            left = p1.x;
+            top = p1.y;
+            right = p1.x + size;
+            bottom = p1.y + size;
+        } else if (p2.x < p1.x && p2.y >= p1.y) {
+            // Dragging bottom-left
+            left = p1.x - size;
+            top = p1.y;
+            right = p1.x;
+            bottom = p1.y + size;
+        } else if (p2.x >= p1.x && p2.y < p1.y) {
+            // Dragging top-right
+            left = p1.x;
+            top = p1.y - size;
+            right = p1.x + size;
+            bottom = p1.y;
+        } else {
+            // Dragging top-left
+            left = p1.x - size;
+            top = p1.y - size;
+            right = p1.x;
+            bottom = p1.y;
+        }
+
+        return new int[] {left, top, right, bottom};
+    }
+
     @Override
     public void draw(CustomRaster raster) {
-        int left = Math.min(p1.x, p2.x);
-        int top = Math.min(p1.y, p2.y);
-        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
 
-        int right = p1.x < p2.x ? left + size : left - size;
-        int bottom = p1.y < p2.y ? top + size : top - size;
-
-        left = Math.min(left, right);
-        top = Math.min(top, bottom);
-        right = Math.max(left, right);
-        bottom = Math.max(top, bottom);
-
+        // Draw the square
         raster.drawRectangle(left, top, right, bottom, color, style, thickness, filled);
 
+        // Fill if needed
         if (filled) {
             raster.fillRectangle(left, top, right, bottom, fillColor);
         }
@@ -45,17 +81,11 @@ public class SquareShape implements Shape {
 
     @Override
     public boolean contains(Point p) {
-        int left = Math.min(p1.x, p2.x);
-        int top = Math.min(p1.y, p2.y);
-        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
-
-        int right = p1.x < p2.x ? left + size : left - size;
-        int bottom = p1.y < p2.y ? top + size : top - size;
-
-        left = Math.min(left, right);
-        top = Math.min(top, bottom);
-        right = Math.max(left, right);
-        bottom = Math.max(top, bottom);
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
 
         // Check if point is near the edges or inside (if filled)
         if (filled) {
@@ -80,15 +110,8 @@ public class SquareShape implements Shape {
 
     @Override
     public void setEndPoint(Point p) {
-        // Make a square instead of a rectangle
-        int width = Math.abs(p.x - p1.x);
-        int height = Math.abs(p.y - p1.y);
-        int size = Math.max(width, height);
-
-        int newX = p.x > p1.x ? p1.x + size : p1.x - size;
-        int newY = p.y > p1.y ? p1.y + size : p1.y - size;
-
-        p2 = new Point(newX, newY);
+        // Simply store the new end point - drawing logic will handle the square sizing
+        p2 = p;
     }
 
     @Override
@@ -108,24 +131,11 @@ public class SquareShape implements Shape {
 
     @Override
     public Point getNearestControlPoint(Point p) {
-        int left = Math.min(p1.x, p2.x);
-        int top = Math.min(p1.y, p2.y);
-        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
-
-        int right = left + size;
-        int bottom = top + size;
-
-        if (p1.x > p2.x) {
-            int temp = left;
-            left = right - size;
-            right = temp + size;
-        }
-
-        if (p1.y > p2.y) {
-            int temp = top;
-            top = bottom - size;
-            bottom = temp + size;
-        }
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
 
         Point[] controlPoints = {
                 new Point(left, top),        // Top-left
@@ -154,90 +164,188 @@ public class SquareShape implements Shape {
 
     @Override
     public void resizeByPoint(Point controlPoint, int dx, int dy) {
-        int left = Math.min(p1.x, p2.x);
-        int top = Math.min(p1.y, p2.y);
-        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
 
-        int right = left + size;
-        int bottom = top + size;
+        // Determine which corner is the anchor (which should stay fixed)
+        boolean isLeftFixed = (p2.x >= p1.x);
+        boolean isTopFixed = (p2.y >= p1.y);
+        boolean isRightFixed = (p2.x < p1.x);
+        boolean isBottomFixed = (p2.y < p1.y);
 
-        if (p1.x > p2.x) {
-            int temp = left;
-            left = right - size;
-            right = temp + size;
-        }
-
-        if (p1.y > p2.y) {
-            int temp = top;
-            top = bottom - size;
-            bottom = temp + size;
-        }
-
-        // Handle different control points for resizing (keeping square aspect ratio)
+        // Top-left corner
         if (controlPoint.x == left && controlPoint.y == top) {
-            // Top-left
-            int max = Math.max(Math.abs(dx), Math.abs(dy));
+            // Calculate max shift to maintain square aspect ratio
+            int maxShift = Math.max(Math.abs(dx), Math.abs(dy));
             int signX = dx < 0 ? -1 : 1;
             int signY = dy < 0 ? -1 : 1;
 
-            dx = max * signX;
-            dy = max * signY;
+            // Apply maximum shift in both directions to keep square
+            if (isRightFixed && isBottomFixed) {
+                // Dragging from bottom-right anchor
+                p2.x = p1.x - (maxShift * signX);
+                p2.y = p1.y - (maxShift * signY);
+            } else {
+                // Other anchors
+                if (isRightFixed) {
+                    // Left edge is being moved
+                    p1.x = right - (maxShift * signX);
+                } else {
+                    // Left edge is fixed
+                    p2.x = p1.x + (maxShift * signX);
+                }
 
-            if (p1.x == left) p1.x += dx; else p2.x += dx;
-            if (p1.y == top) p1.y += dy; else p2.y += dy;
+                if (isBottomFixed) {
+                    // Top edge is being moved
+                    p1.y = bottom - (maxShift * signY);
+                } else {
+                    // Top edge is fixed
+                    p2.y = p1.y + (maxShift * signY);
+                }
+            }
         }
+        // Top-right corner
         else if (controlPoint.x == right && controlPoint.y == top) {
-            // Top-right
-            int max = Math.max(Math.abs(dx), Math.abs(dy));
+            int maxShift = Math.max(Math.abs(dx), Math.abs(dy));
             int signX = dx < 0 ? -1 : 1;
             int signY = dy < 0 ? -1 : 1;
 
-            dx = max * signX;
-            dy = max * signY;
+            if (isLeftFixed && isBottomFixed) {
+                // Dragging from bottom-left anchor
+                p2.x = p1.x + (maxShift * signX);
+                p2.y = p1.y - (maxShift * signY);
+            } else {
+                // Other anchors
+                if (isLeftFixed) {
+                    // Right edge is being moved
+                    p2.x = p1.x + (maxShift * signX);
+                } else {
+                    // Right edge is fixed
+                    p1.x = right - (maxShift * signX);
+                }
 
-            if (p1.x == right) p1.x += dx; else p2.x += dx;
-            if (p1.y == top) p1.y += dy; else p2.y += dy;
+                if (isBottomFixed) {
+                    // Top edge is being moved
+                    p1.y = bottom - (maxShift * signY);
+                } else {
+                    // Top edge is fixed
+                    p2.y = p1.y + (maxShift * signY);
+                }
+            }
         }
+        // Bottom-left corner
         else if (controlPoint.x == left && controlPoint.y == bottom) {
-            // Bottom-left
-            int max = Math.max(Math.abs(dx), Math.abs(dy));
+            int maxShift = Math.max(Math.abs(dx), Math.abs(dy));
             int signX = dx < 0 ? -1 : 1;
             int signY = dy < 0 ? -1 : 1;
 
-            dx = max * signX;
-            dy = max * signY;
+            if (isRightFixed && isTopFixed) {
+                // Dragging from top-right anchor
+                p2.x = p1.x - (maxShift * signX);
+                p2.y = p1.y + (maxShift * signY);
+            } else {
+                // Other anchors
+                if (isRightFixed) {
+                    // Left edge is being moved
+                    p1.x = right - (maxShift * signX);
+                } else {
+                    // Left edge is fixed
+                    p2.x = p1.x + (maxShift * signX);
+                }
 
-            if (p1.x == left) p1.x += dx; else p2.x += dx;
-            if (p1.y == bottom) p1.y += dy; else p2.y += dy;
+                if (isTopFixed) {
+                    // Bottom edge is being moved
+                    p2.y = p1.y + (maxShift * signY);
+                } else {
+                    // Bottom edge is fixed
+                    p1.y = top + (maxShift * signY);
+                }
+            }
         }
+        // Bottom-right corner
         else if (controlPoint.x == right && controlPoint.y == bottom) {
-            // Bottom-right
-            int max = Math.max(Math.abs(dx), Math.abs(dy));
+            int maxShift = Math.max(Math.abs(dx), Math.abs(dy));
             int signX = dx < 0 ? -1 : 1;
             int signY = dy < 0 ? -1 : 1;
 
-            dx = max * signX;
-            dy = max * signY;
+            if (isLeftFixed && isTopFixed) {
+                // Dragging from top-left anchor
+                p2.x = p1.x + (maxShift * signX);
+                p2.y = p1.y + (maxShift * signY);
+            } else {
+                // Other anchors
+                if (isLeftFixed) {
+                    // Right edge is being moved
+                    p2.x = p1.x + (maxShift * signX);
+                } else {
+                    // Right edge is fixed
+                    p1.x = right - (maxShift * signX);
+                }
 
-            if (p1.x == right) p1.x += dx; else p2.x += dx;
-            if (p1.y == bottom) p1.y += dy; else p2.y += dy;
+                if (isTopFixed) {
+                    // Bottom edge is being moved
+                    p2.y = p1.y + (maxShift * signY);
+                } else {
+                    // Bottom edge is fixed
+                    p1.y = top + (maxShift * signY);
+                }
+            }
         }
-        // For middle points, adjust both corners to maintain square shape
+        // Middle edges
+        else if (controlPoint.x == (left + right) / 2) {
+            // Top or bottom middle
+            int newY = controlPoint.y + dy;
+            int size = right - left;
+
+            if (controlPoint.y == top) {
+                // Top middle
+                if (isBottomFixed) {
+                    p1.y = bottom - size;
+                } else {
+                    p2.y = p1.y + size;
+                }
+            } else if (controlPoint.y == bottom) {
+                // Bottom middle
+                if (isTopFixed) {
+                    p2.y = p1.y + size;
+                } else {
+                    p1.y = top + size;
+                }
+            }
+        }
+        else if (controlPoint.y == (top + bottom) / 2) {
+            // Left or right middle
+            int newX = controlPoint.x + dx;
+            int size = bottom - top;
+
+            if (controlPoint.x == left) {
+                // Left middle
+                if (isRightFixed) {
+                    p1.x = right - size;
+                } else {
+                    p2.x = p1.x + size;
+                }
+            } else if (controlPoint.x == right) {
+                // Right middle
+                if (isLeftFixed) {
+                    p2.x = p1.x + size;
+                } else {
+                    p1.x = left + size;
+                }
+            }
+        }
     }
 
     @Override
     public void drawControlPoints(CustomRaster raster) {
-        int left = Math.min(p1.x, p2.x);
-        int top = Math.min(p1.y, p2.y);
-        int size = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
-
-        int right = p1.x < p2.x ? left + size : left - size;
-        int bottom = p1.y < p2.y ? top + size : top - size;
-
-        left = Math.min(left, right);
-        top = Math.min(top, bottom);
-        right = Math.max(left, right);
-        bottom = Math.max(top, bottom);
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
 
         // Draw corner control points
         raster.drawControlPoint(left, top);           // Top-left
