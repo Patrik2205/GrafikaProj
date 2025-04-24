@@ -29,6 +29,11 @@ public class DrawingCanvas extends JPanel {
     private int currentThickness = 2;
     private int currentLineStyle = LineStyle.SOLID;
 
+    private Point selectedControlPoint = null;
+    private boolean movingShape = false;
+    private boolean movingPoint = false;
+    private boolean isRightClick = false;
+
     private PaintFrame parent;
 
     // Add these methods
@@ -58,6 +63,71 @@ public class DrawingCanvas extends JPanel {
                 lastPoint = new Point(e.getX(), e.getY());
                 dragStart = lastPoint;
 
+                if (currentTool.equals("Select")) {
+                    // First check if we already have a selected shape
+                    if (selectedShape != null) {
+                        // We already have a shape selected, check if user clicked on a control point
+                        selectedControlPoint = selectedShape.getNearestControlPoint(lastPoint);
+
+                        if (selectedControlPoint != null) {
+                            // Clicked on a control point - prepare for dragging/resizing
+                            redrawCanvas();
+                            return;
+                        } else if (selectedShape.contains(lastPoint)) {
+                            // Clicked on the shape but not on a control point
+                            // Prepare to move the whole shape
+                            redrawCanvas();
+                            return;
+                        } else {
+                            // Clicked outside - deselect
+                            selectedShape = null;
+                            selectedControlPoint = null;
+                            redrawCanvas();
+                            return;
+                        }
+                    }
+
+                    // No shape selected yet - try to select one
+                    selectedShape = findShapeAt(lastPoint);
+                    if (selectedShape != null) {
+                        // Found a shape to select
+                        redrawCanvas();
+                    }
+                    return;
+                }
+
+                // Rest of the code for other tools
+                if (currentTool.equals("Polygon")) {
+                    if (e.getButton() == MouseEvent.BUTTON1) {
+                        // Left-click adds a point
+                        polygonPoints.add(new Point(lastPoint)); // Make sure to create a new Point
+
+                        // Update currentShape or create a new one if needed
+                        if (currentShape == null || !(currentShape instanceof PolygonShape)) {
+                            currentShape = new PolygonShape(new ArrayList<>(polygonPoints),
+                                    currentColor, currentThickness, currentLineStyle);
+                        } else {
+                            ((PolygonShape)currentShape).setPoints(new ArrayList<>(polygonPoints));
+                        }
+
+                        // Always redraw to show the updated polygon
+                        redrawCanvas();
+                        return;
+                    } else if (e.getButton() == MouseEvent.BUTTON3 && polygonPoints.size() >= 3) {
+                        // Right-click finishes the polygon if we have at least 3 points
+                        if (currentShape instanceof PolygonShape) {
+                            // Add the complete polygon to our shapes list
+                            shapes.add(currentShape);
+
+                            // Reset state for next polygon
+                            polygonPoints.clear();
+                            currentShape = null;
+                            redrawCanvas();
+                        }
+                        return;
+                    }
+                }
+
                 if (currentTool.equals("Eraser")) {
                     if (eraserMode == EraserMode.OBJECT) {
                         // Existing object eraser functionality
@@ -71,48 +141,6 @@ public class DrawingCanvas extends JPanel {
                         lastEraserPoint = lastPoint;
                         raster.erasePixels(lastPoint.x, lastPoint.y, eraserSize);
                         repaint();
-                    }
-                    return;
-                }
-
-                if (currentTool.equals("Select")) {
-                    selectedShape = findShapeAt(lastPoint);
-                    repaint();
-                    return;
-                } else if (currentTool.equals("Polygon")) {
-                    if (e.getButton() == MouseEvent.BUTTON1) {
-                        // Left-click adds a point
-                        if (polygonPoints.isEmpty()) {
-                            polygonPoints.add(lastPoint);
-                            currentShape = new PolygonShape(new ArrayList<>(polygonPoints),
-                                    currentColor, currentThickness, currentLineStyle);
-                        } else {
-                            polygonPoints.add(lastPoint);
-                            ((PolygonShape)currentShape).setPoints(new ArrayList<>(polygonPoints));
-                        }
-                        redrawCanvas();
-                    } else if (e.getButton() == MouseEvent.BUTTON3 && polygonPoints.size() >= 3) {
-                        // Right-click finishes the polygon
-                        shapes.add(new PolygonShape(new ArrayList<>(polygonPoints),
-                                currentColor, currentThickness, currentLineStyle));
-                        polygonPoints.clear();
-                        currentShape = null;
-                        redrawCanvas();
-                    }
-                    return;
-                } else if (currentTool.equals("Fill")) {
-                    Shape targetShape = findShapeAt(lastPoint);
-                    if (targetShape != null && targetShape.canBeFilled()) {
-                        targetShape.setFilled(true);
-                        targetShape.setFillColor(currentColor);
-                        redrawCanvas();
-                    }
-                    return;
-                } else if (currentTool.equals("Eraser")) {
-                    Shape shapeToRemove = findShapeAt(lastPoint);
-                    if (shapeToRemove != null) {
-                        shapes.remove(shapeToRemove);
-                        redrawCanvas();
                     }
                     return;
                 }
@@ -148,9 +176,13 @@ public class DrawingCanvas extends JPanel {
                     shapes.add(currentShape);
                     currentShape = null;
                     redrawCanvas();
-                } else if (currentTool.equals("Select") && selectedShape != null && dragStart != null) {
-                    // Finished moving or resizing
-                    dragStart = null;
+                } else if (currentTool.equals("Select")) {
+                    movingShape = false;
+                    movingPoint = false;
+                    selectedControlPoint = null;
+                    isRightClick = false;
+                    redrawCanvas();
+                    return;
                 }
             }
 
@@ -158,6 +190,41 @@ public class DrawingCanvas extends JPanel {
             public void mouseDragged(MouseEvent e) {
                 Point currentPoint = new Point(e.getX(), e.getY());
 
+                if (currentTool.equals("Select") && selectedShape != null) {
+                    int dx = currentPoint.x - lastPoint.x;
+                    int dy = currentPoint.y - lastPoint.y;
+
+                    // Check if we're dragging with right mouse button
+                    boolean rightDrag = (e.getModifiersEx() & MouseEvent.BUTTON3_DOWN_MASK) != 0;
+
+                    if (selectedControlPoint != null) {
+                        // We're manipulating a control point
+                        if (rightDrag && (selectedShape instanceof PolygonShape ||
+                                selectedShape instanceof RectangleShape ||
+                                selectedShape instanceof SquareShape)) {
+                            // Right-drag on control point - direct movement of the point
+                            if (selectedShape instanceof PolygonShape) {
+                                ((PolygonShape) selectedShape).movePoint(selectedControlPoint, dx, dy);
+                            } else if (selectedShape instanceof RectangleShape) {
+                                ((RectangleShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
+                            } else if (selectedShape instanceof SquareShape) {
+                                ((SquareShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
+                            }
+                        } else {
+                            // Left-drag on control point - normal resize
+                            selectedShape.resizeByPoint(selectedControlPoint, dx, dy);
+                        }
+                    } else if (selectedShape.contains(lastPoint)) {
+                        // We're moving the entire shape
+                        selectedShape.move(dx, dy);
+                    }
+
+                    lastPoint = currentPoint;
+                    redrawCanvas();
+                    return;
+                }
+
+                // Other mouse dragging handlers (same as before)
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
                     // Perform pixel erasing along the drag path
                     if (lastEraserPoint != null) {
@@ -166,25 +233,6 @@ public class DrawingCanvas extends JPanel {
                         lastEraserPoint = currentPoint;
                         repaint();
                     }
-                    return;
-                }
-
-                if (currentTool.equals("Select") && selectedShape != null) {
-                    int dx = currentPoint.x - lastPoint.x;
-                    int dy = currentPoint.y - lastPoint.y;
-
-                    // Check if we're near a control point (for resizing)
-                    Point controlPoint = selectedShape.getNearestControlPoint(dragStart);
-                    if (controlPoint != null) {
-                        // Resize operation
-                        selectedShape.resizeByPoint(controlPoint, dx, dy);
-                    } else {
-                        // Move operation
-                        selectedShape.move(dx, dy);
-                    }
-
-                    lastPoint = currentPoint;
-                    redrawCanvas();
                     return;
                 }
 

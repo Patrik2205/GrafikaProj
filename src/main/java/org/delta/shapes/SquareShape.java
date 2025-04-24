@@ -339,6 +339,59 @@ public class SquareShape implements Shape {
         }
     }
 
+    public void moveCorner(Point corner, int dx, int dy) {
+        int[] dims = calculateSquareDimensions();
+        int left = dims[0];
+        int top = dims[1];
+        int right = dims[2];
+        int bottom = dims[3];
+
+        // Determine which corner we're moving
+        if (corner.x == left && corner.y == top) {
+            // Top-left corner
+            if (p1.x == left || p1.y == top) {
+                // p1 is at or near this corner
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                // p2 is at or near this corner
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == right && corner.y == top) {
+            // Top-right corner
+            if (p1.x == right || p1.y == top) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == left && corner.y == bottom) {
+            // Bottom-left corner
+            if (p1.x == left || p1.y == bottom) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == right && corner.y == bottom) {
+            // Bottom-right corner
+            if (p1.x == right || p1.y == bottom) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        }
+
+        // Note: This will allow the square to become a rectangle
+        // when moving corners directly, which is probably what we want
+        // for direct manipulation
+    }
+
     @Override
     public void drawControlPoints(CustomRaster raster) {
         int[] dims = calculateSquareDimensions();

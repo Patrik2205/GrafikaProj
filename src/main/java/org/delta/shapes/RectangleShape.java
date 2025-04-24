@@ -181,4 +181,50 @@ public class RectangleShape implements Shape {
         raster.drawControlPoint(left, (top + bottom) / 2);     // Left-middle
         raster.drawControlPoint(right, (top + bottom) / 2);    // Right-middle
     }
+
+    public void moveCorner(Point corner, int dx, int dy) {
+        int left = Math.min(p1.x, p2.x);
+        int top = Math.min(p1.y, p2.y);
+        int right = Math.max(p1.x, p2.x);
+        int bottom = Math.max(p1.y, p2.y);
+
+        // Determine which corner we're moving
+        if (corner.x == left && corner.y == top) {
+            // Top-left corner
+            if (p1.x == left && p1.y == top) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == right && corner.y == top) {
+            // Top-right corner
+            if (p1.x == right && p1.y == top) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == left && corner.y == bottom) {
+            // Bottom-left corner
+            if (p1.x == left && p1.y == bottom) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        } else if (corner.x == right && corner.y == bottom) {
+            // Bottom-right corner
+            if (p1.x == right && p1.y == bottom) {
+                p1.x += dx;
+                p1.y += dy;
+            } else {
+                p2.x += dx;
+                p2.y += dy;
+            }
+        }
+    }
 }

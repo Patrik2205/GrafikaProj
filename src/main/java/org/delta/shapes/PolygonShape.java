@@ -28,27 +28,27 @@ public class PolygonShape implements Shape {
 
     @Override
     public void draw(CustomRaster raster) {
+        // Don't attempt to draw if we don't have enough points
         if (points.size() < 2) return;
 
+        // Draw the filled region if needed
         if (filled && points.size() >= 3) {
             raster.fillPolygon(points, fillColor);
         }
 
+        // Draw each line segment between consecutive points
         for (int i = 0; i < points.size() - 1; i++) {
-            raster.drawLine(
-                    points.get(i).x, points.get(i).y,
-                    points.get(i + 1).x, points.get(i + 1).y,
-                    color, style, thickness
-            );
+            Point p1 = points.get(i);
+            Point p2 = points.get(i + 1);
+            raster.drawLine(p1.x, p1.y, p2.x, p2.y, color, style, thickness);
         }
 
-        // Complete the polygon if it has 3 or more points
+        // Complete the polygon by connecting the last point to the first
+        // (only if we have at least 3 points to form a closed shape)
         if (points.size() >= 3) {
-            raster.drawLine(
-                    points.get(points.size() - 1).x, points.get(points.size() - 1).y,
-                    points.get(0).x, points.get(0).y,
-                    color, style, thickness
-            );
+            Point first = points.get(0);
+            Point last = points.get(points.size() - 1);
+            raster.drawLine(last.x, last.y, first.x, first.y, color, style, thickness);
         }
     }
 
@@ -142,15 +142,41 @@ public class PolygonShape implements Shape {
         return nearest;
     }
 
-    @Override
-    public void resizeByPoint(Point controlPoint, int dx, int dy) {
-        for (int i = 0; i < points.size(); i++) {
-            if (points.get(i).x == controlPoint.x && points.get(i).y == controlPoint.y) {
-                points.get(i).x += dx;
-                points.get(i).y += dy;
-                break;
+    public void movePoint(Point vertex, int dx, int dy) {
+        // Find the matching vertex in our points list
+        for (Point p : points) {
+            if (p.x == vertex.x && p.y == vertex.y) {
+                // We found the matching point, move it
+                p.x += dx;
+                p.y += dy;
+                return;
             }
         }
+
+        // If we didn't find an exact match, look for the closest point
+        double minDistance = Double.MAX_VALUE;
+        Point closestPoint = null;
+
+        for (Point p : points) {
+            double distance = Math.sqrt(Math.pow(p.x - vertex.x, 2) + Math.pow(p.y - vertex.y, 2));
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = p;
+            }
+        }
+
+        // If we found a point and it's reasonably close (within 10 pixels)
+        if (closestPoint != null && minDistance < 10) {
+            closestPoint.x += dx;
+            closestPoint.y += dy;
+        }
+    }
+
+    @Override
+    public void resizeByPoint(Point controlPoint, int dx, int dy) {
+        // For polygons, resizeByPoint will just move the individual point
+        // which is the same behavior as our new movePoint method
+        movePoint(controlPoint, dx, dy);
     }
 
     @Override
