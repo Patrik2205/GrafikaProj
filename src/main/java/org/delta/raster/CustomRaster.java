@@ -33,6 +33,14 @@ public class CustomRaster {
         return img.getHeight();
     }
 
+    public BufferedImage getImg() {
+        return img;
+    }
+
+    public Graphics getGraphics() {
+        return img.getGraphics();
+    }
+
     public int getPixel(int x, int y) {
         if (x >= 0 && x < getWidth() && y >= 0 && y < getHeight()) {
             return img.getRGB(x, y);
@@ -404,6 +412,43 @@ public class CustomRaster {
                     setPixel(x + i, y + j, Color.WHITE);
                 }
             }
+        }
+    }
+
+    public void erasePixels(int x, int y, int radius) {
+        // Get the background color to use for erasing
+        int backgroundColor = clearColor;
+
+        // Erase in a circular pattern
+        for (int dy = -radius; dy <= radius; dy++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                // Check if point is within the circular radius
+                if (dx*dx + dy*dy <= radius*radius) {
+                    setPixel(x + dx, y + dy, backgroundColor);
+                }
+            }
+        }
+    }
+
+    public void erasePixelsLine(int x1, int y1, int x2, int y2, int radius) {
+        // Calculate distance between points
+        double distance = Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+
+        // If points are very close, just erase at the end point
+        if (distance < 1) {
+            erasePixels(x2, y2, radius);
+            return;
+        }
+
+        // Determine number of steps to ensure smooth erasing
+        int steps = (int)Math.ceil(distance);
+
+        // Erase along the path
+        for (int i = 0; i <= steps; i++) {
+            double t = (double)i / steps;
+            int x = (int)Math.round(x1 + t * (x2 - x1));
+            int y = (int)Math.round(y1 + t * (y2 - y1));
+            erasePixels(x, y, radius);
         }
     }
 

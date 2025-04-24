@@ -2,6 +2,7 @@ package org.delta.ui;
 import org.delta.raster.CustomRaster;
 import org.delta.shapes.*;
 import org.delta.shapes.Shape;
+import org.delta.util.EraserMode;
 import org.delta.util.LineStyle;
 
 import javax.swing.*;
@@ -11,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DrawingCanvas extends JPanel {
+    private EraserMode eraserMode = EraserMode.OBJECT;
+    private int eraserSize = 10;
+    private Point lastEraserPoint = null;
+
     private CustomRaster raster;
     private List<Shape> shapes = new ArrayList<>();
     private Shape currentShape = null;
@@ -26,9 +31,21 @@ public class DrawingCanvas extends JPanel {
 
     private PaintFrame parent;
 
+    // Add these methods
+    public void setEraserMode(EraserMode mode) {
+        this.eraserMode = mode;
+    }
+
+    public void setEraserSize(int size) {
+        this.eraserSize = size;
+    }
+
     public DrawingCanvas(PaintFrame parent) {
         this.parent = parent;
         setBackground(Color.WHITE);
+        setPreferredSize(new Dimension(800, 600));
+
+        // Initialize raster with initial size
         raster = new CustomRaster(800, 600);
 
         addMouseListeners();
@@ -40,6 +57,23 @@ public class DrawingCanvas extends JPanel {
             public void mousePressed(MouseEvent e) {
                 lastPoint = new Point(e.getX(), e.getY());
                 dragStart = lastPoint;
+
+                if (currentTool.equals("Eraser")) {
+                    if (eraserMode == EraserMode.OBJECT) {
+                        // Existing object eraser functionality
+                        Shape shapeToRemove = findShapeAt(lastPoint);
+                        if (shapeToRemove != null) {
+                            shapes.remove(shapeToRemove);
+                            redrawCanvas();
+                        }
+                    } else if (eraserMode == EraserMode.PIXEL) {
+                        // Pixel eraser functionality
+                        lastEraserPoint = lastPoint;
+                        raster.erasePixels(lastPoint.x, lastPoint.y, eraserSize);
+                        repaint();
+                    }
+                    return;
+                }
 
                 if (currentTool.equals("Select")) {
                     selectedShape = findShapeAt(lastPoint);
@@ -109,6 +143,11 @@ public class DrawingCanvas extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
+                    lastEraserPoint = null;
+                    return;
+                }
+
                 if (currentShape != null && !currentTool.equals("Polygon")) {
                     shapes.add(currentShape);
                     currentShape = null;
@@ -122,6 +161,17 @@ public class DrawingCanvas extends JPanel {
             @Override
             public void mouseDragged(MouseEvent e) {
                 Point currentPoint = new Point(e.getX(), e.getY());
+
+                if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
+                    // Perform pixel erasing along the drag path
+                    if (lastEraserPoint != null) {
+                        raster.erasePixelsLine(lastEraserPoint.x, lastEraserPoint.y,
+                                currentPoint.x, currentPoint.y, eraserSize);
+                        lastEraserPoint = currentPoint;
+                        repaint();
+                    }
+                    return;
+                }
 
                 if (currentTool.equals("Select") && selectedShape != null) {
                     int dx = currentPoint.x - lastPoint.x;
@@ -199,6 +249,27 @@ public class DrawingCanvas extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         raster.repaint(g);
+    }
+
+    public void setSize(int width, int height) {
+        super.setSize(width, height);
+        setPreferredSize(new Dimension(width, height));
+
+        // Create a new raster with the new size
+        CustomRaster newRaster = new CustomRaster(width, height);
+
+        // Copy the contents of the old raster to the new one
+        if (raster != null) {
+            Graphics g = newRaster.getGraphics();
+            g.drawImage(raster.getImg(), 0, 0, null);
+            g.dispose();
+        }
+
+        // Replace the old raster
+        raster = newRaster;
+
+        // Redraw everything
+        redrawCanvas();
     }
 
     public void clearCanvas() {

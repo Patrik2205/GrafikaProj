@@ -1,4 +1,5 @@
 package org.delta.ui;
+import org.delta.util.EraserMode;
 import org.delta.util.LineStyle;
 
 import javax.swing.*;
@@ -7,14 +8,22 @@ import java.awt.event.*;
 
 public class PaintFrame extends JFrame {
     private DrawingCanvas canvas;
+    private ResizableCanvasPanel canvasPanel;
+
     private JPanel toolPanel;
     private JPanel colorPanel;
     private JPanel lineStylePanel;
+    private JPanel eraserPanel;
+
+    private JComboBox<String> eraserModeCombo;
+    private EraserMode currentEraserMode = EraserMode.OBJECT;
 
     private String currentTool = "Line";
     private Color currentColor = Color.BLACK;
     private int currentThickness = 2;
     private int currentLineStyle = LineStyle.SOLID;
+
+    private JLabel statusLabel;
 
     public PaintFrame() {
         setTitle("Paint Application");
@@ -22,12 +31,83 @@ public class PaintFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
+        // Create status bar
+        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        statusLabel = new JLabel("Canvas size: 800 x 600 px");
+        statusBar.add(statusLabel);
+
         // Create canvas
         canvas = new DrawingCanvas(this);
-        add(canvas, BorderLayout.CENTER);
+
+        // Create resizable canvas panel
+        canvasPanel = new ResizableCanvasPanel(canvas, statusLabel);
+
+        // Create scroll pane for canvas
+        JScrollPane scrollPane = new JScrollPane(canvasPanel);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        // Add menu for canvas size presets
+        JMenuBar menuBar = new JMenuBar();
+        JMenu canvasMenu = new JMenu("Canvas");
+
+        // Add canvas size presets
+        JMenuItem size640x480 = new JMenuItem("640 x 480");
+        size640x480.addActionListener(e -> canvasPanel.setCanvasSize(640, 480));
+
+        JMenuItem size800x600 = new JMenuItem("800 x 600");
+        size800x600.addActionListener(e -> canvasPanel.setCanvasSize(800, 600));
+
+        JMenuItem size1024x768 = new JMenuItem("1024 x 768");
+        size1024x768.addActionListener(e -> canvasPanel.setCanvasSize(1024, 768));
+
+        JMenuItem size1280x720 = new JMenuItem("1280 x 720 (HD)");
+        size1280x720.addActionListener(e -> canvasPanel.setCanvasSize(1280, 720));
+
+        JMenuItem sizeCustom = new JMenuItem("Custom Size...");
+        sizeCustom.addActionListener(e -> {
+            JTextField widthField = new JTextField(5);
+            JTextField heightField = new JTextField(5);
+
+            JPanel panel = new JPanel();
+            panel.add(new JLabel("Width:"));
+            panel.add(widthField);
+            panel.add(Box.createHorizontalStrut(15));
+            panel.add(new JLabel("Height:"));
+            panel.add(heightField);
+
+            int result = JOptionPane.showConfirmDialog(this, panel,
+                    "Enter Custom Canvas Size", JOptionPane.OK_CANCEL_OPTION);
+
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    int width = Integer.parseInt(widthField.getText());
+                    int height = Integer.parseInt(heightField.getText());
+                    canvasPanel.setCanvasSize(width, height);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this,
+                            "Please enter valid numbers for width and height.",
+                            "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        canvasMenu.add(size640x480);
+        canvasMenu.add(size800x600);
+        canvasMenu.add(size1024x768);
+        canvasMenu.add(size1280x720);
+        canvasMenu.addSeparator();
+        canvasMenu.add(sizeCustom);
+
+        menuBar.add(canvasMenu);
+        setJMenuBar(menuBar);
 
         // Create control panels
         createControlPanels();
+
+        // Add components to frame
+        add(scrollPane, BorderLayout.CENTER);
+        add(statusBar, BorderLayout.SOUTH);
 
         // Set initial tool
         setTool("Line");
@@ -47,12 +127,17 @@ public class PaintFrame extends JFrame {
         // Line style panel
         lineStylePanel = createLineStylePanel();
 
+        // Create eraser panel
+        eraserPanel = createEraserPanel();
+        eraserPanel.setVisible(false);  // Initially hidden
+
         // Add all panels to control panel
         controlPanel.add(toolPanel);
         controlPanel.add(new JSeparator(JSeparator.VERTICAL));
         controlPanel.add(colorPanel);
         controlPanel.add(new JSeparator(JSeparator.VERTICAL));
         controlPanel.add(lineStylePanel);
+        controlPanel.add(eraserPanel);
 
         // Add clear button
         JButton clearButton = new JButton("Clear Canvas");
@@ -138,9 +223,59 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
+    // Add this method to create eraser controls
+    private JPanel createEraserPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBorder(BorderFactory.createTitledBorder("Eraser Options"));
+
+        JLabel modeLabel = new JLabel("Eraser Mode:");
+        eraserModeCombo = new JComboBox<>(new String[]{"Object", "Pixel"});
+        eraserModeCombo.addActionListener(e -> {
+            String selected = (String) eraserModeCombo.getSelectedItem();
+            switch (selected) {
+                case "Object":
+                    setEraserMode(EraserMode.OBJECT);
+                    break;
+                case "Pixel":
+                    setEraserMode(EraserMode.PIXEL);
+                    break;
+            }
+        });
+
+        // Add slider for pixel eraser size
+        JLabel sizeLabel = new JLabel("Eraser Size:");
+        JSlider sizeSlider = new JSlider(JSlider.HORIZONTAL, 5, 50, 10);
+        sizeSlider.setMajorTickSpacing(10);
+        sizeSlider.setPaintTicks(true);
+        sizeSlider.addChangeListener(e -> {
+            if (!sizeSlider.getValueIsAdjusting()) {
+                canvas.setEraserSize(sizeSlider.getValue());
+            }
+        });
+
+        panel.add(modeLabel);
+        panel.add(eraserModeCombo);
+        panel.add(sizeLabel);
+        panel.add(sizeSlider);
+
+        return panel;
+    }
+
+    // Add this method to set eraser mode
+    public void setEraserMode(EraserMode mode) {
+        currentEraserMode = mode;
+        canvas.setEraserMode(mode);
+    }
+
+    // Modify the setTool method to update eraser panel visibility
     public void setTool(String tool) {
         currentTool = tool;
         canvas.setCurrentTool(tool);
+
+        // Show/hide eraser panel based on tool selection
+        if (eraserPanel != null) {
+            eraserPanel.setVisible(tool.equals("Eraser"));
+        }
 
         // Update UI to reflect selected tool
         for (Component c : toolPanel.getComponents()) {
