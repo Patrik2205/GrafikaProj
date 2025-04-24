@@ -134,7 +134,10 @@ public class ResizableCanvasPanel extends JPanel {
         public void mouseReleased(MouseEvent e) {
             if (resizing) {
                 resizing = false;
-                setCursor(Cursor.getDefaultCursor());
+
+                // Reset cursor based on current position to ensure proper cursor
+                int direction = getResizeDirection(e.getPoint());
+                setCursor(getResizeCursor(direction));
             }
         }
 
@@ -185,6 +188,22 @@ public class ResizableCanvasPanel extends JPanel {
 
         @Override
         public void mouseMoved(MouseEvent e) {
+            int direction = getResizeDirection(e.getPoint());
+            setCursor(getResizeCursor(direction));
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            // When mouse leaves the panel, reset cursor to default
+            if (!resizing) {
+                setCursor(Cursor.getDefaultCursor());
+            }
+        }
+
+        // Also add this method to handle mouse entering
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            // Set cursor based on position when mouse enters
             int direction = getResizeDirection(e.getPoint());
             setCursor(getResizeCursor(direction));
         }
