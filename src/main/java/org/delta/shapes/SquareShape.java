@@ -306,27 +306,46 @@ public class SquareShape implements Shape {
             int signX = dx >= 0 ? 1 : -1;
             int signY = dy >= 0 ? 1 : -1;
 
-            // Move the corner uniformly in both directions
+            // Apply the change to the corner
             Point corner = cornerPoints.get(cornerIndex);
-            int newX = corner.x + (signX * maxChange);
-            int newY = corner.y + (signY * maxChange);
+            corner.x += signX * maxChange;
+            corner.y += signY * maxChange;
 
-            // Calculate new positions for adjacent corners
-            int prevIndex = (cornerIndex + 3) % 4;
-            int nextIndex = (cornerIndex + 1) % 4;
-            Point prev = cornerPoints.get(prevIndex);
-            Point next = cornerPoints.get(nextIndex);
+            // Get the other two corners
+            int adjacentIndex1 = (cornerIndex + 1) % 4;
+            int adjacentIndex2 = (cornerIndex + 3) % 4;
+            Point adjacent1 = cornerPoints.get(adjacentIndex1);
+            Point adjacent2 = cornerPoints.get(adjacentIndex2);
 
-            // Update corner
-            corner.x = newX;
-            corner.y = newY;
-
-            // Update adjacent corners
-            prev.x = oppositeCorner.x;
-            prev.y = newY;
-
-            next.x = newX;
-            next.y = oppositeCorner.y;
+            // Update adjacent corners based on the corner being moved
+            // Top-left corner (0)
+            if (cornerIndex == 0) {
+                adjacent1.x = oppositeCorner.x;
+                adjacent1.y = corner.y;
+                adjacent2.x = corner.x;
+                adjacent2.y = oppositeCorner.y;
+            }
+            // Top-right corner (1)
+            else if (cornerIndex == 1) {
+                adjacent1.x = corner.x;
+                adjacent1.y = oppositeCorner.y;
+                adjacent2.x = oppositeCorner.x;
+                adjacent2.y = corner.y;
+            }
+            // Bottom-right corner (2)
+            else if (cornerIndex == 2) {
+                adjacent1.x = oppositeCorner.x;
+                adjacent1.y = corner.y;
+                adjacent2.x = corner.x;
+                adjacent2.y = oppositeCorner.y;
+            }
+            // Bottom-left corner (3)
+            else if (cornerIndex == 3) {
+                adjacent1.x = corner.x;
+                adjacent1.y = oppositeCorner.y;
+                adjacent2.x = oppositeCorner.x;
+                adjacent2.y = corner.y;
+            }
         }
     }
 

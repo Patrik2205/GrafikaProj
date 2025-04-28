@@ -220,21 +220,16 @@ public class DrawingCanvas extends JPanel {
                     // CASE 1: Manipulating a control point
                     if (selectedControlPoint != null && movingPoint) {
                         if (rightDrag) {
-                            // Right-drag on control point - direct movement of the point
-                            if (selectedShape instanceof PolygonShape) {
+                            // Right-drag on control point behavior
+                            if (selectedShape instanceof CircleShape) {
+                                // For circles, right-drag always moves the entire circle
+                                selectedShape.move(dx, dy);
+                            } else if (selectedShape instanceof PolygonShape) {
                                 ((PolygonShape) selectedShape).movePoint(selectedControlPoint, dx, dy);
                             } else if (selectedShape instanceof RectangleShape) {
                                 ((RectangleShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
                             } else if (selectedShape instanceof SquareShape) {
                                 ((SquareShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
-                            } else if (selectedShape instanceof CircleShape) {
-                                // Allow free movement of radius point with right drag
-                                if (((CircleShape) selectedShape).isRadiusPoint(selectedControlPoint)) {
-                                    ((CircleShape) selectedShape).moveRadiusPoint(dx, dy);
-                                } else {
-                                    // Moving center point
-                                    selectedShape.move(dx, dy);
-                                }
                             } else {
                                 // Direct point movement for other shapes
                                 selectedShape.resizeByPoint(selectedControlPoint, dx, dy);

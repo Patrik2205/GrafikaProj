@@ -24,10 +24,7 @@ public class CircleShape implements Shape {
 
     @Override
     public void draw(CustomRaster raster) {
-        int radius = (int) Math.sqrt(
-                Math.pow(radiusPoint.x - center.x, 2) +
-                        Math.pow(radiusPoint.y - center.y, 2)
-        );
+        int radius = calculateRadius();
 
         raster.drawCircle(center.x, center.y, radius, color, style, thickness, filled);
 
@@ -36,12 +33,16 @@ public class CircleShape implements Shape {
         }
     }
 
-    @Override
-    public boolean contains(Point p) {
-        int radius = (int) Math.sqrt(
+    private int calculateRadius() {
+        return (int) Math.sqrt(
                 Math.pow(radiusPoint.x - center.x, 2) +
                         Math.pow(radiusPoint.y - center.y, 2)
         );
+    }
+
+    @Override
+    public boolean contains(Point p) {
+        int radius = calculateRadius();
 
         double distance = Math.sqrt(
                 Math.pow(p.x - center.x, 2) +
@@ -86,32 +87,34 @@ public class CircleShape implements Shape {
     @Override
     public Point getNearestControlPoint(Point p) {
         // Only two control points: center and radius point
-        Point[] controlPoints = {
-                new Point(center.x, center.y),            // Center
-                new Point(radiusPoint.x, radiusPoint.y)   // Radius point
-        };
+        double distToCenter = distance(p, center);
+        double distToRadius = distance(p, radiusPoint);
 
-        Point nearest = null;
-        double minDist = 10; // Threshold
-
-        for (Point cp : controlPoints) {
-            double dist = Math.sqrt(Math.pow(p.x - cp.x, 2) + Math.pow(p.y - cp.y, 2));
-            if (dist < minDist) {
-                minDist = dist;
-                nearest = cp;
-            }
+        if (distToCenter <= 10) {
+            return center;
+        } else if (distToRadius <= 10) {
+            return radiusPoint;
         }
 
-        return nearest;
+        return null;
     }
 
     // Check if a point is the radius control point
     public boolean isRadiusPoint(Point p) {
-        double dist = Math.sqrt(Math.pow(p.x - radiusPoint.x, 2) + Math.pow(p.y - radiusPoint.y, 2));
-        return dist < 10; // Using 10px threshold for matching
+        return distance(p, radiusPoint) <= 10;
     }
 
-    // Move just the radius point (for right-drag manipulation)
+    // Check if a point is the center control point
+    public boolean isCenterPoint(Point p) {
+        return distance(p, center) <= 10;
+    }
+
+    // Calculate distance between two points
+    private double distance(Point p1, Point p2) {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    // Move the radius point (adjusts the circle size)
     public void moveRadiusPoint(int dx, int dy) {
         radiusPoint.x += dx;
         radiusPoint.y += dy;
@@ -119,23 +122,15 @@ public class CircleShape implements Shape {
 
     @Override
     public void resizeByPoint(Point controlPoint, int dx, int dy) {
-        if (isPointNear(controlPoint, center, 10)) {
-            // Move center
-            center.x += dx;
-            center.y += dy;
-            radiusPoint.x += dx;
-            radiusPoint.y += dy;
-        } else if (isPointNear(controlPoint, radiusPoint, 10)) {
-            // Resize by moving radius point
+        // We only scale the circle if the radius point is selected
+        if (isRadiusPoint(controlPoint)) {
             radiusPoint.x += dx;
             radiusPoint.y += dy;
         }
-    }
-
-    // Helper method to check if two points are near each other
-    private boolean isPointNear(Point p1, Point p2, int threshold) {
-        double dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-        return dist <= threshold;
+        // If center point is selected, we move the whole circle
+        else if (isCenterPoint(controlPoint)) {
+            move(dx, dy);
+        }
     }
 
     @Override
