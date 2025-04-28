@@ -30,6 +30,7 @@ public class DrawingCanvas extends JPanel {
     private int currentLineStyle = LineStyle.SOLID;
 
     private Point selectedControlPoint = null;
+    private int selectedEdge = -1;
     private boolean movingShape = false;
     private boolean movingPoint = false;
     private boolean isRightClick = false;
@@ -62,6 +63,7 @@ public class DrawingCanvas extends JPanel {
             public void mousePressed(MouseEvent e) {
                 lastPoint = new Point(e.getX(), e.getY());
                 dragStart = lastPoint;
+                isRightClick = (e.getButton() == MouseEvent.BUTTON3);
 
                 if (currentTool.equals("Select")) {
                     // First check if we already have a selected shape
@@ -71,17 +73,34 @@ public class DrawingCanvas extends JPanel {
 
                         if (selectedControlPoint != null) {
                             // Clicked on a control point - prepare for dragging/resizing
+                            movingPoint = true;
+                            selectedEdge = -1;
+                            redrawCanvas();
+                            return;
+                        }
+
+                        // Check if we're clicking on an edge (for rectangle/square)
+                        selectedEdge = -1;
+                        if (selectedShape instanceof RectangleShape) {
+                            selectedEdge = ((RectangleShape) selectedShape).getNearestEdge(lastPoint);
+                        } else if (selectedShape instanceof SquareShape) {
+                            selectedEdge = ((SquareShape) selectedShape).getNearestEdge(lastPoint);
+                        }
+
+                        if (selectedEdge >= 0) {
+                            // Clicked on an edge
                             redrawCanvas();
                             return;
                         } else if (selectedShape.contains(lastPoint)) {
-                            // Clicked on the shape but not on a control point
-                            // Prepare to move the whole shape
+                            // Clicked on the shape but not on a control point or edge
+                            movingShape = true;
                             redrawCanvas();
                             return;
                         } else {
                             // Clicked outside - deselect
                             selectedShape = null;
                             selectedControlPoint = null;
+                            selectedEdge = -1;
                             redrawCanvas();
                             return;
                         }
@@ -180,6 +199,7 @@ public class DrawingCanvas extends JPanel {
                     movingShape = false;
                     movingPoint = false;
                     selectedControlPoint = null;
+                    // Don't reset selectedEdge here so it stays highlighted
                     isRightClick = false;
                     redrawCanvas();
                     return;
@@ -194,14 +214,12 @@ public class DrawingCanvas extends JPanel {
                     int dx = currentPoint.x - lastPoint.x;
                     int dy = currentPoint.y - lastPoint.y;
 
-                    // Check if we're dragging with right mouse button
-                    boolean rightDrag = (e.getModifiersEx() & MouseEvent.BUTTON3_DOWN_MASK) != 0;
+                    // Get the current drag type
+                    boolean rightDrag = isRightClick || (e.getModifiersEx() & MouseEvent.BUTTON3_DOWN_MASK) != 0;
 
-                    if (selectedControlPoint != null) {
-                        // We're manipulating a control point
-                        if (rightDrag && (selectedShape instanceof PolygonShape ||
-                                selectedShape instanceof RectangleShape ||
-                                selectedShape instanceof SquareShape)) {
+                    // CASE 1: Manipulating a control point
+                    if (selectedControlPoint != null && movingPoint) {
+                        if (rightDrag) {
                             // Right-drag on control point - direct movement of the point
                             if (selectedShape instanceof PolygonShape) {
                                 ((PolygonShape) selectedShape).movePoint(selectedControlPoint, dx, dy);
@@ -209,13 +227,41 @@ public class DrawingCanvas extends JPanel {
                                 ((RectangleShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
                             } else if (selectedShape instanceof SquareShape) {
                                 ((SquareShape) selectedShape).moveCorner(selectedControlPoint, dx, dy);
+                            } else if (selectedShape instanceof CircleShape) {
+                                // Allow free movement of radius point with right drag
+                                if (((CircleShape) selectedShape).isRadiusPoint(selectedControlPoint)) {
+                                    ((CircleShape) selectedShape).moveRadiusPoint(dx, dy);
+                                } else {
+                                    // Moving center point
+                                    selectedShape.move(dx, dy);
+                                }
+                            } else {
+                                // Direct point movement for other shapes
+                                selectedShape.resizeByPoint(selectedControlPoint, dx, dy);
                             }
                         } else {
-                            // Left-drag on control point - normal resize
+                            // Left-drag on control point - constrained resize
                             selectedShape.resizeByPoint(selectedControlPoint, dx, dy);
                         }
-                    } else if (selectedShape.contains(lastPoint)) {
+                    }
+                    // CASE 2: Manipulating an edge
+                    else if (selectedEdge >= 0) {
+                        if (rightDrag) {
+                            // Right-drag on edge - move the entire shape
+                            selectedShape.move(dx, dy);
+                        } else {
+                            // Left-drag on edge - resize in specific direction
+                            if (selectedShape instanceof RectangleShape) {
+                                ((RectangleShape) selectedShape).resizeByEdge(selectedEdge, dx, dy);
+                            } else if (selectedShape instanceof SquareShape) {
+                                ((SquareShape) selectedShape).resizeByEdge(selectedEdge, dx, dy);
+                            }
+                        }
+                    }
+                    // CASE 3: Moving the entire shape
+                    else if (movingShape || selectedShape.contains(lastPoint)) {
                         // We're moving the entire shape
+                        movingShape = true;
                         selectedShape.move(dx, dy);
                     }
 
@@ -224,7 +270,7 @@ public class DrawingCanvas extends JPanel {
                     return;
                 }
 
-                // Other mouse dragging handlers (same as before)
+                // Other mouse dragging handlers
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
                     // Perform pixel erasing along the drag path
                     if (lastEraserPoint != null) {
@@ -284,9 +330,36 @@ public class DrawingCanvas extends JPanel {
         // Draw selected shape's control points
         if (selectedShape != null) {
             selectedShape.drawControlPoints(raster);
+
+            // Highlight selected edge if applicable
+            if (selectedEdge >= 0) {
+                highlightSelectedEdge(raster, selectedShape, selectedEdge);
+            }
         }
 
         repaint();
+    }
+
+    // Helper method to highlight the selected edge
+    private void highlightSelectedEdge(CustomRaster raster, Shape shape, int edgeIndex) {
+        if (shape instanceof RectangleShape || shape instanceof SquareShape) {
+            List<Point> points;
+
+            if (shape instanceof RectangleShape) {
+                points = ((RectangleShape)shape).getCornerPoints();
+            } else {
+                points = ((SquareShape)shape).getCornerPoints();
+            }
+
+            if (points != null && points.size() == 4) {
+                Point p1 = points.get(edgeIndex);
+                Point p2 = points.get((edgeIndex + 1) % 4);
+
+                // Draw a highlighted line over the selected edge
+                Color highlightColor = new Color(0, 200, 255); // Light blue
+                raster.drawLine(p1.x, p1.y, p2.x, p2.y, highlightColor, LineStyle.DASHED, 1);
+            }
+        }
     }
 
     @Override
@@ -320,6 +393,7 @@ public class DrawingCanvas extends JPanel {
         shapes.clear();
         currentShape = null;
         selectedShape = null;
+        selectedEdge = -1;
         polygonPoints.clear();
         redrawCanvas();
     }
@@ -340,6 +414,7 @@ public class DrawingCanvas extends JPanel {
         }
         if (!tool.equals("Select")) {
             selectedShape = null;
+            selectedEdge = -1;
         }
         redrawCanvas();
     }

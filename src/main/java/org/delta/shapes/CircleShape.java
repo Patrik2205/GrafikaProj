@@ -85,18 +85,10 @@ public class CircleShape implements Shape {
 
     @Override
     public Point getNearestControlPoint(Point p) {
-        int radius = (int) Math.sqrt(
-                Math.pow(radiusPoint.x - center.x, 2) +
-                        Math.pow(radiusPoint.y - center.y, 2)
-        );
-
-        // Define control points (center and 4 edge points)
+        // Only two control points: center and radius point
         Point[] controlPoints = {
                 new Point(center.x, center.y),            // Center
-                new Point(center.x + radius, center.y),   // Right
-                new Point(center.x - radius, center.y),   // Left
-                new Point(center.x, center.y + radius),   // Bottom
-                new Point(center.x, center.y - radius)    // Top
+                new Point(radiusPoint.x, radiusPoint.y)   // Radius point
         };
 
         Point nearest = null;
@@ -113,43 +105,43 @@ public class CircleShape implements Shape {
         return nearest;
     }
 
+    // Check if a point is the radius control point
+    public boolean isRadiusPoint(Point p) {
+        double dist = Math.sqrt(Math.pow(p.x - radiusPoint.x, 2) + Math.pow(p.y - radiusPoint.y, 2));
+        return dist < 10; // Using 10px threshold for matching
+    }
+
+    // Move just the radius point (for right-drag manipulation)
+    public void moveRadiusPoint(int dx, int dy) {
+        radiusPoint.x += dx;
+        radiusPoint.y += dy;
+    }
+
     @Override
     public void resizeByPoint(Point controlPoint, int dx, int dy) {
-        int radius = (int) Math.sqrt(
-                Math.pow(radiusPoint.x - center.x, 2) +
-                        Math.pow(radiusPoint.y - center.y, 2)
-        );
-
-        if (controlPoint.x == center.x && controlPoint.y == center.y) {
-            // Moving center
+        if (isPointNear(controlPoint, center, 10)) {
+            // Move center
             center.x += dx;
             center.y += dy;
             radiusPoint.x += dx;
             radiusPoint.y += dy;
-        } else {
-            // Resizing by edge point
-            int newX = controlPoint.x + dx;
-            int newY = controlPoint.y + dy;
-
-            // Calculate new radius based on the moved point
-            radiusPoint = new Point(newX, newY);
+        } else if (isPointNear(controlPoint, radiusPoint, 10)) {
+            // Resize by moving radius point
+            radiusPoint.x += dx;
+            radiusPoint.y += dy;
         }
+    }
+
+    // Helper method to check if two points are near each other
+    private boolean isPointNear(Point p1, Point p2, int threshold) {
+        double dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        return dist <= threshold;
     }
 
     @Override
     public void drawControlPoints(CustomRaster raster) {
-        // Draw center control point
+        // Draw only center and radius control points
         raster.drawControlPoint(center.x, center.y);
-
-        // Draw edge control points
-        int radius = (int) Math.sqrt(
-                Math.pow(radiusPoint.x - center.x, 2) +
-                        Math.pow(radiusPoint.y - center.y, 2)
-        );
-
-        raster.drawControlPoint(center.x + radius, center.y);   // Right
-        raster.drawControlPoint(center.x - radius, center.y);   // Left
-        raster.drawControlPoint(center.x, center.y + radius);   // Bottom
-        raster.drawControlPoint(center.x, center.y - radius);   // Top
+        raster.drawControlPoint(radiusPoint.x, radiusPoint.y);
     }
 }
