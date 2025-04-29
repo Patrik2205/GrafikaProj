@@ -5,7 +5,9 @@ import java.awt.Point;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class CustomRaster {
     private BufferedImage img;
@@ -451,6 +453,57 @@ public class CustomRaster {
             int x = (int)Math.round(x1 + t * (x2 - x1));
             int y = (int)Math.round(y1 + t * (y2 - y1));
             erasePixels(x, y, radius);
+        }
+    }
+
+    public void floodFill(int x, int y, Color newColor) {
+        // Ignore if out of bounds
+        if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) {
+            return;
+        }
+
+        // Get the color we're replacing
+        int targetColor = getPixel(x, y);
+        int replacementColor = newColor.getRGB();
+
+        // Don't do anything if the colors are the same
+        if (targetColor == replacementColor) {
+            return;
+        }
+
+        // Perform the flood fill using a queue-based approach (avoids stack overflow)
+        floodFillIterative(x, y, targetColor, replacementColor);
+    }
+
+    private void floodFillIterative(int startX, int startY, int targetColor, int replacementColor) {
+        Queue<Point> pixelsToCheck = new LinkedList<>();
+        pixelsToCheck.add(new Point(startX, startY));
+
+        // Define the four directions to check (up, right, down, left)
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+        while (!pixelsToCheck.isEmpty()) {
+            Point current = pixelsToCheck.remove();
+            int x = current.x;
+            int y = current.y;
+
+            // Skip if out of bounds
+            if (x < 0 || x >= getWidth() || y < 0 || y >= getHeight()) {
+                continue;
+            }
+
+            // Skip if this pixel doesn't match the target color
+            if (getPixel(x, y) != targetColor) {
+                continue;
+            }
+
+            // Fill this pixel
+            setPixel(x, y, replacementColor);
+
+            // Check neighbors
+            for (int[] dir : directions) {
+                pixelsToCheck.add(new Point(x + dir[0], y + dir[1]));
+            }
         }
     }
 

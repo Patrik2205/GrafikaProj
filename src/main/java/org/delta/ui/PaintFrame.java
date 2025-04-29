@@ -1,5 +1,6 @@
 package org.delta.ui;
 import org.delta.util.EraserMode;
+import org.delta.util.FillMode;
 import org.delta.util.LineStyle;
 
 import javax.swing.*;
@@ -24,6 +25,16 @@ public class PaintFrame extends JFrame {
     private int currentLineStyle = LineStyle.SOLID;
 
     private JLabel statusLabel;
+
+    private JPanel fillPanel;
+    private JComboBox<String> fillModeCombo;
+    private FillMode currentFillMode = FillMode.OBJECT;
+
+    // Add this method to set fill mode
+    public void setFillMode(FillMode mode) {
+        currentFillMode = mode;
+        canvas.setFillMode(mode);
+    }
 
     public PaintFrame() {
         setTitle("Paint Application");
@@ -131,6 +142,10 @@ public class PaintFrame extends JFrame {
         eraserPanel = createEraserPanel();
         eraserPanel.setVisible(false);  // Initially hidden
 
+        // Create fill panel
+        fillPanel = createFillPanel();
+        fillPanel.setVisible(false);  // Initially hidden
+
         // Add all panels to control panel
         controlPanel.add(toolPanel);
         controlPanel.add(new JSeparator(JSeparator.VERTICAL));
@@ -138,6 +153,7 @@ public class PaintFrame extends JFrame {
         controlPanel.add(new JSeparator(JSeparator.VERTICAL));
         controlPanel.add(lineStylePanel);
         controlPanel.add(eraserPanel);
+        controlPanel.add(fillPanel);
 
         // Add clear button
         JButton clearButton = new JButton("Clear Canvas");
@@ -261,6 +277,30 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
+    private JPanel createFillPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBorder(BorderFactory.createTitledBorder("Fill Options"));
+
+        JLabel modeLabel = new JLabel("Fill Mode:");
+        fillModeCombo = new JComboBox<>(new String[]{"Object", "Flood Fill"});
+        fillModeCombo.addActionListener(e -> {
+            String selected = (String) fillModeCombo.getSelectedItem();
+            switch (selected) {
+                case "Object":
+                    setFillMode(FillMode.OBJECT);
+                    break;
+                case "Flood Fill":
+                    setFillMode(FillMode.FLOOD);
+                    break;
+            }
+        });
+
+        panel.add(modeLabel);
+        panel.add(fillModeCombo);
+
+        return panel;
+    }
+
     // Add this method to set eraser mode
     public void setEraserMode(EraserMode mode) {
         currentEraserMode = mode;
@@ -272,9 +312,13 @@ public class PaintFrame extends JFrame {
         currentTool = tool;
         canvas.setCurrentTool(tool);
 
-        // Show/hide eraser panel based on tool selection
+        // Show/hide appropriate panels based on tool selection
         if (eraserPanel != null) {
             eraserPanel.setVisible(tool.equals("Eraser"));
+        }
+
+        if (fillPanel != null) {
+            fillPanel.setVisible(tool.equals("Fill"));
         }
 
         // Update UI to reflect selected tool

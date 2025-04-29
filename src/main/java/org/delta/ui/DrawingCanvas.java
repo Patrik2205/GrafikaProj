@@ -4,6 +4,7 @@ import org.delta.shapes.*;
 import org.delta.shapes.Shape;
 import org.delta.util.EraserMode;
 import org.delta.util.LineStyle;
+import org.delta.util.FillMode;
 
 import javax.swing.*;
 import java.awt.*;
@@ -36,6 +37,13 @@ public class DrawingCanvas extends JPanel {
     private boolean isRightClick = false;
 
     private PaintFrame parent;
+
+    private FillMode fillMode = FillMode.OBJECT;
+
+    // Add this method to set fill mode
+    public void setFillMode(FillMode mode) {
+        this.fillMode = mode;
+    }
 
     // Add these methods
     public void setEraserMode(EraserMode mode) {
@@ -111,6 +119,23 @@ public class DrawingCanvas extends JPanel {
                     if (selectedShape != null) {
                         // Found a shape to select
                         redrawCanvas();
+                    }
+                    return;
+                }
+
+                if (currentTool.equals("Fill")) {
+                    if (fillMode == FillMode.OBJECT) {
+                        // Object fill mode - find and fill a shape
+                        Shape shapeToFill = findShapeAt(lastPoint);
+                        if (shapeToFill != null && shapeToFill.canBeFilled()) {
+                            shapeToFill.setFilled(true);
+                            shapeToFill.setFillColor(currentColor);
+                            redrawCanvas();
+                        }
+                    } else if (fillMode == FillMode.FLOOD) {
+                        // Flood fill mode - fill connected pixels
+                        raster.floodFill(lastPoint.x, lastPoint.y, currentColor);
+                        repaint();
                     }
                     return;
                 }
