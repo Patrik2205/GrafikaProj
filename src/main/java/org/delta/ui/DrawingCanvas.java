@@ -44,8 +44,6 @@ public class DrawingCanvas extends JPanel {
     private boolean movingPoint = false;
     private boolean isRightClick = false;
 
-    private PixelEraserShape currentEraserShape = null;
-
     // Parent reference for communication
     private PaintFrame parent;
 
@@ -89,6 +87,47 @@ public class DrawingCanvas extends JPanel {
         raster = new CustomRaster(800, 600);
 
         addMouseListeners();
+    }
+
+    /**
+     * Calculates the endpoint for a line snapped to 45-degree increments
+     * @param start Starting point of the line
+     * @param end Unsnapped endpoint of the line
+     * @return Endpoint snapped to the nearest 45-degree increment
+     */
+    private Point calculateSnappedPoint(Point start, Point end) {
+        // Calculate delta values
+        int dx = end.x - start.x;
+        int dy = end.y - start.y;
+
+        // If dx or dy is very small, snap to straight horizontal or vertical
+        if (Math.abs(dx) < Math.abs(dy) / 10) {
+            // Vertical line
+            return new Point(start.x, end.y);
+        }
+        if (Math.abs(dy) < Math.abs(dx) / 10) {
+            // Horizontal line
+            return new Point(end.x, start.y);
+        }
+
+        // Calculate distance (length) of the line
+        double distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Calculate angle in radians
+        double angle = Math.atan2(dy, dx);
+
+        // Convert to degrees and snap to nearest 45-degree increment
+        double angleDegrees = Math.toDegrees(angle);
+        double snappedAngleDegrees = Math.round(angleDegrees / 45.0) * 45.0;
+
+        // Convert back to radians
+        double snappedAngle = Math.toRadians(snappedAngleDegrees);
+
+        // Calculate new endpoint using distance and snapped angle
+        int newX = (int) Math.round(start.x + distance * Math.cos(snappedAngle));
+        int newY = (int) Math.round(start.y + distance * Math.sin(snappedAngle));
+
+        return new Point(newX, newY);
     }
 
     /**
@@ -214,13 +253,9 @@ public class DrawingCanvas extends JPanel {
                         redrawCanvas();
                     }
                 } else if (fillMode == FillMode.FLOOD) {
-                    // Create a FloodFillShape and add it to the shapes list
-                    FloodFillShape floodFill = new FloodFillShape(new Point(lastPoint), currentColor);
-                    shapes.add(floodFill);
-
-                    // Also perform the fill visually for immediate feedback
+                    // Flood fill mode - fill connected pixels
                     raster.floodFill(lastPoint.x, lastPoint.y, currentColor);
-                    redrawCanvas();
+                    repaint();
                 }
             }
 
@@ -268,13 +303,8 @@ public class DrawingCanvas extends JPanel {
                         redrawCanvas();
                     }
                 } else if (eraserMode == EraserMode.PIXEL) {
-                    // Create a new PixelEraserShape
-                    Color backgroundColor = Color.WHITE; // Or get from your clear color setting
-                    currentEraserShape = new PixelEraserShape(eraserSize, backgroundColor);
-                    currentEraserShape.addPoint(lastPoint);
+                    // Pixel eraser - erase pixels
                     lastEraserPoint = lastPoint;
-
-                    // Apply the erasure visually while drawing
                     raster.erasePixels(lastPoint.x, lastPoint.y, eraserSize);
                     repaint();
                 }
@@ -283,13 +313,7 @@ public class DrawingCanvas extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
-                    // Finalize the eraser shape and add it to the shapes list
-                    if (currentEraserShape != null) {
-                        shapes.add(currentEraserShape);
-                        currentEraserShape = null;
-                    }
                     lastEraserPoint = null;
-                    redrawCanvas(); // Make sure to redraw to finalize changes
                     return;
                 }
 
@@ -314,6 +338,9 @@ public class DrawingCanvas extends JPanel {
             public void mouseDragged(MouseEvent e) {
                 Point currentPoint = new Point(e.getX(), e.getY());
 
+                // Check if Shift key is pressed for line snapping
+                boolean shiftPressed = (e.getModifiersEx() & InputEvent.SHIFT_DOWN_MASK) != 0;
+
                 // Handle Selection Tool Dragging - Shape Manipulation
                 if (currentTool.equals("Select") && selectedShape != null) {
                     handleSelectionToolDrag(e, currentPoint);
@@ -322,12 +349,7 @@ public class DrawingCanvas extends JPanel {
 
                 // Handle Eraser Tool Dragging - Pixel Erasing
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
-                    // Add this point to the current eraser shape
-                    if (currentEraserShape != null) {
-                        currentEraserShape.addPoint(currentPoint);
-                    }
-
-                    // Perform pixel erasing along the drag path for visual feedback
+                    // Perform pixel erasing along the drag path
                     if (lastEraserPoint != null) {
                         raster.erasePixelsLine(lastEraserPoint.x, lastEraserPoint.y,
                                 currentPoint.x, currentPoint.y, eraserSize);
@@ -341,7 +363,15 @@ public class DrawingCanvas extends JPanel {
                 if (currentShape != null && !currentTool.equals("Polygon")) {
                     switch (currentTool) {
                         case "Line":
-                            ((LineShape)currentShape).setEndPoint(currentPoint);
+                            if (shiftPressed) {
+                                // Apply 45-degree snapping when shift is pressed
+                                Point startPoint = ((LineShape)currentShape).getStartPoint();
+                                Point snappedEndpoint = calculateSnappedPoint(startPoint, currentPoint);
+                                ((LineShape)currentShape).setEndPoint(snappedEndpoint);
+                            } else {
+                                // Normal behavior, no snapping
+                                ((LineShape)currentShape).setEndPoint(currentPoint);
+                            }
                             break;
                         case "Rectangle":
                         case "Square":

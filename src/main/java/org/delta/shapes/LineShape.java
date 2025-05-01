@@ -115,4 +115,12 @@ public class LineShape implements Shape {
         raster.drawControlPoint(p1.x, p1.y);
         raster.drawControlPoint(p2.x, p2.y);
     }
+
+    /**
+     * Gets the start point of the line
+     * @return The first endpoint (p1)
+     */
+    public Point getStartPoint() {
+        return p1;
+    }
 }
