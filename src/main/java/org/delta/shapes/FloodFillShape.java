@@ -34,7 +34,10 @@ public class FloodFillShape implements Shape {
         }
 
         // Only fill if the target color is different from the fill color
-        if (targetColor != fillColor.getRGB()) {
+        // and if the seed point is within the raster bounds
+        if (targetColor != fillColor.getRGB() &&
+                seedPoint.x >= 0 && seedPoint.x < raster.getWidth() &&
+                seedPoint.y >= 0 && seedPoint.y < raster.getHeight()) {
             raster.floodFill(seedPoint.x, seedPoint.y, fillColor);
         }
     }

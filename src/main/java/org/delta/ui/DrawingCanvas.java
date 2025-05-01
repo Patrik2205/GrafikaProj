@@ -44,6 +44,8 @@ public class DrawingCanvas extends JPanel {
     private boolean movingPoint = false;
     private boolean isRightClick = false;
 
+    private PixelEraserShape currentEraserShape = null;
+
     // Parent reference for communication
     private PaintFrame parent;
 
@@ -212,9 +214,13 @@ public class DrawingCanvas extends JPanel {
                         redrawCanvas();
                     }
                 } else if (fillMode == FillMode.FLOOD) {
-                    // Flood fill mode - fill connected pixels
+                    // Create a FloodFillShape and add it to the shapes list
+                    FloodFillShape floodFill = new FloodFillShape(new Point(lastPoint), currentColor);
+                    shapes.add(floodFill);
+
+                    // Also perform the fill visually for immediate feedback
                     raster.floodFill(lastPoint.x, lastPoint.y, currentColor);
-                    repaint();
+                    redrawCanvas();
                 }
             }
 
@@ -262,8 +268,13 @@ public class DrawingCanvas extends JPanel {
                         redrawCanvas();
                     }
                 } else if (eraserMode == EraserMode.PIXEL) {
-                    // Pixel eraser - erase pixels
+                    // Create a new PixelEraserShape
+                    Color backgroundColor = Color.WHITE; // Or get from your clear color setting
+                    currentEraserShape = new PixelEraserShape(eraserSize, backgroundColor);
+                    currentEraserShape.addPoint(lastPoint);
                     lastEraserPoint = lastPoint;
+
+                    // Apply the erasure visually while drawing
                     raster.erasePixels(lastPoint.x, lastPoint.y, eraserSize);
                     repaint();
                 }
@@ -272,7 +283,13 @@ public class DrawingCanvas extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
+                    // Finalize the eraser shape and add it to the shapes list
+                    if (currentEraserShape != null) {
+                        shapes.add(currentEraserShape);
+                        currentEraserShape = null;
+                    }
                     lastEraserPoint = null;
+                    redrawCanvas(); // Make sure to redraw to finalize changes
                     return;
                 }
 
@@ -305,7 +322,12 @@ public class DrawingCanvas extends JPanel {
 
                 // Handle Eraser Tool Dragging - Pixel Erasing
                 if (currentTool.equals("Eraser") && eraserMode == EraserMode.PIXEL) {
-                    // Perform pixel erasing along the drag path
+                    // Add this point to the current eraser shape
+                    if (currentEraserShape != null) {
+                        currentEraserShape.addPoint(currentPoint);
+                    }
+
+                    // Perform pixel erasing along the drag path for visual feedback
                     if (lastEraserPoint != null) {
                         raster.erasePixelsLine(lastEraserPoint.x, lastEraserPoint.y,
                                 currentPoint.x, currentPoint.y, eraserSize);
