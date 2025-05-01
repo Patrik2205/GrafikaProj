@@ -6,6 +6,10 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a rectangle defined by four corner points.
+ * Supports drawing, selection, resizing, and fill operations.
+ */
 public class RectangleShape implements Shape {
     private List<Point> cornerPoints;
     private Color color;
@@ -21,6 +25,14 @@ public class RectangleShape implements Shape {
     public static final int BOTTOM_EDGE = 2;
     public static final int LEFT_EDGE = 3;
 
+    /**
+     * Creates a new rectangle with the specified parameters
+     * @param p1 First corner point
+     * @param p2 Opposite corner point
+     * @param color Outline color
+     * @param thickness Line thickness
+     * @param style Line style (solid, dashed, dotted)
+     */
     public RectangleShape(Point p1, Point p2, Color color, int thickness, int style) {
         this.cornerPoints = createRectangleCorners(p1, p2);
         this.color = color;
@@ -29,7 +41,14 @@ public class RectangleShape implements Shape {
         this.filled = false;
     }
 
-    // Create rectangle corner points from two opposite corners
+    /**
+     * Creates a list of corner points from two opposite corners
+     * Creates a properly oriented rectangle regardless of which corners are provided
+     *
+     * @param p1 First corner point
+     * @param p2 Opposite corner point
+     * @return List of four corner points in clockwise order
+     */
     private List<Point> createRectangleCorners(Point p1, Point p2) {
         List<Point> points = new ArrayList<>(4);
         int left = Math.min(p1.x, p2.x);
@@ -85,7 +104,13 @@ public class RectangleShape implements Shape {
         return false;
     }
 
-    // Check if point is inside a polygon
+    /**
+     * Check if point is inside a polygon using ray casting algorithm
+     *
+     * @param p Point to check
+     * @param polygon List of polygon vertices
+     * @return true if the point is inside the polygon
+     */
     private boolean isPointInPolygon(Point p, List<Point> polygon) {
         boolean inside = false;
         int n = polygon.size();
@@ -103,7 +128,14 @@ public class RectangleShape implements Shape {
         return inside;
     }
 
-    // Calculate distance from point to line segment
+    /**
+     * Calculate distance from point to line segment
+     *
+     * @param p Point
+     * @param start Line segment start point
+     * @param end Line segment end point
+     * @return Shortest distance from point to line segment
+     */
     private double distanceToLineSegment(Point p, Point start, Point end) {
         double lineLength = distance(start, end);
         if (lineLength == 0) return distance(p, start);
@@ -124,7 +156,9 @@ public class RectangleShape implements Shape {
                 (p.y - projY) * (p.y - projY));
     }
 
-    // Calculate distance between two points
+    /**
+     * Calculate distance between two points
+     */
     private double distance(Point p1, Point p2) {
         return Math.sqrt((p2.x - p1.x) * (p2.x - p1.x) +
                 (p2.y - p1.y) * (p2.y - p1.y));
@@ -182,7 +216,12 @@ public class RectangleShape implements Shape {
         return nearest;
     }
 
-    // Identify which edge the point is on (or close to)
+    /**
+     * Identify which edge the point is on (or close to)
+     *
+     * @param p Point to check
+     * @return Edge index or NO_EDGE if not near any edge
+     */
     public int getNearestEdge(Point p) {
         if (cornerPoints.size() != 4) return NO_EDGE;
 
@@ -203,7 +242,13 @@ public class RectangleShape implements Shape {
         return nearestEdge;
     }
 
-    // New method to freely move a corner point
+    /**
+     * Move a corner freely (for right-click drag)
+     *
+     * @param corner Control point to move
+     * @param dx Horizontal offset
+     * @param dy Vertical offset
+     */
     public void moveCorner(Point corner, int dx, int dy) {
         for (Point p : cornerPoints) {
             if (distance(p, corner) < 10) {
@@ -215,7 +260,13 @@ public class RectangleShape implements Shape {
         }
     }
 
-    // Method for resizing by edge
+    /**
+     * Resize by dragging an edge
+     *
+     * @param edgeIndex Index of the edge being dragged
+     * @param dx Horizontal offset
+     * @param dy Vertical offset
+     */
     public void resizeByEdge(int edgeIndex, int dx, int dy) {
         if (cornerPoints.size() != 4 || edgeIndex < 0 || edgeIndex > 3) return;
 
@@ -272,7 +323,7 @@ public class RectangleShape implements Shape {
             Point adjacent1 = cornerPoints.get(adjacentIndex1);
             Point adjacent2 = cornerPoints.get(adjacentIndex2);
 
-            // Now update the adjacent corners based on their relative positions
+            // Update the adjacent corners to maintain rectangular shape
             // Top-left corner (0)
             if (cornerIndex == 0) {
                 adjacent1.y = corner.y;    // Top-right: update y
@@ -306,7 +357,10 @@ public class RectangleShape implements Shape {
         }
     }
 
-    // Getter for corner points (needed for drawing selected edges)
+    /**
+     * Get the corner points of the rectangle
+     * @return List of corner points
+     */
     public List<Point> getCornerPoints() {
         return cornerPoints;
     }

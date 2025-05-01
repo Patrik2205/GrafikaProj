@@ -6,6 +6,10 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a polygon defined by a list of vertices.
+ * Supports an arbitrary number of points (at least 3 for a closed shape).
+ */
 public class PolygonShape implements Shape {
     private List<Point> points;
     private Color color;
@@ -14,6 +18,13 @@ public class PolygonShape implements Shape {
     private int style;
     private boolean filled;
 
+    /**
+     * Creates a new polygon with the specified parameters
+     * @param points List of polygon vertices
+     * @param color Line color
+     * @param thickness Line thickness
+     * @param style Line style (solid, dashed, dotted)
+     */
     public PolygonShape(List<Point> points, Color color, int thickness, int style) {
         this.points = new ArrayList<>(points);
         this.color = color;
@@ -22,6 +33,10 @@ public class PolygonShape implements Shape {
         this.filled = false;
     }
 
+    /**
+     * Updates the polygon's vertices
+     * @param points New list of points
+     */
     public void setPoints(List<Point> points) {
         this.points = new ArrayList<>(points);
     }
@@ -74,6 +89,7 @@ public class PolygonShape implements Shape {
 
             return inside;
         }
+
         // For unfilled polygons, check if point is near any edge
         for (int i = 0; i < points.size(); i++) {
             Point p1 = points.get(i);
@@ -142,6 +158,12 @@ public class PolygonShape implements Shape {
         return nearest;
     }
 
+    /**
+     * Moves an individual vertex of the polygon
+     * @param vertex The vertex to move
+     * @param dx Horizontal offset
+     * @param dy Vertical offset
+     */
     public void movePoint(Point vertex, int dx, int dy) {
         // Find the matching vertex in our points list
         for (Point p : points) {

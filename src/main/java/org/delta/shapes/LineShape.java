@@ -4,6 +4,10 @@ import org.delta.raster.CustomRaster;
 import java.awt.Color;
 import java.awt.Point;
 
+/**
+ * Represents a line with two endpoints.
+ * Supports drawing, moving, and resizing operations.
+ */
 public class LineShape implements Shape {
     private Point p1;
     private Point p2;
@@ -11,6 +15,14 @@ public class LineShape implements Shape {
     private int thickness;
     private int style;
 
+    /**
+     * Creates a new line with the specified parameters
+     * @param p1 First endpoint
+     * @param p2 Second endpoint
+     * @param color Line color
+     * @param thickness Line thickness
+     * @param style Line style (solid, dashed, dotted)
+     */
     public LineShape(Point p1, Point p2, Color color, int thickness, int style) {
         this.p1 = p1;
         this.p2 = p2;
@@ -30,15 +42,21 @@ public class LineShape implements Shape {
         double lineLength = distance(p1, p2);
         if (lineLength == 0) return distance(p, p1) <= 5;
 
+        // Calculate projection of point onto line
         double t = ((p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y) * (p2.y - p1.y)) / (lineLength * lineLength);
         t = Math.max(0, Math.min(1, t));
 
+        // Find nearest point on line
         double nearestX = p1.x + t * (p2.x - p1.x);
         double nearestY = p1.y + t * (p2.y - p1.y);
 
+        // Check if point is within selection distance
         return distance(p, new Point((int)nearestX, (int)nearestY)) <= 5 + thickness;
     }
 
+    /**
+     * Calculate distance between two points
+     */
     private double distance(Point p1, Point p2) {
         return Math.sqrt((p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y));
     }
@@ -58,7 +76,7 @@ public class LineShape implements Shape {
 
     @Override
     public boolean canBeFilled() {
-        return false;
+        return false;  // Lines cannot be filled
     }
 
     @Override

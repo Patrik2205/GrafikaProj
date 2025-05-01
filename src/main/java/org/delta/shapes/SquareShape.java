@@ -6,6 +6,10 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a square (a special case of rectangle with equal sides).
+ * Provides specialized functionality to maintain equal width and height.
+ */
 public class SquareShape implements Shape {
     private List<Point> cornerPoints;
     private Point anchorPoint;  // The starting point that remains fixed during drawing
@@ -22,6 +26,14 @@ public class SquareShape implements Shape {
     public static final int BOTTOM_EDGE = 2;
     public static final int LEFT_EDGE = 3;
 
+    /**
+     * Creates a new square with the specified parameters
+     * @param p1 First corner point (anchor)
+     * @param p2 Point used to determine the size and orientation
+     * @param color Outline color
+     * @param thickness Line thickness
+     * @param style Line style (solid, dashed, dotted)
+     */
     public SquareShape(Point p1, Point p2, Color color, int thickness, int style) {
         this.anchorPoint = new Point(p1);
         this.cornerPoints = createSquareCorners(p1, p2);
@@ -31,7 +43,14 @@ public class SquareShape implements Shape {
         this.filled = false;
     }
 
-    // Create square corner points based on two points
+    /**
+     * Creates square corner points based on two points
+     * Uses the maximum of width or height to ensure equal sides
+     *
+     * @param p1 First corner point (anchor)
+     * @param p2 Point used to determine the size and orientation
+     * @return List of four corner points in clockwise order
+     */
     private List<Point> createSquareCorners(Point p1, Point p2) {
         List<Point> points = new ArrayList<>(4);
 
@@ -91,7 +110,9 @@ public class SquareShape implements Shape {
         return false;
     }
 
-    // Check if point is inside a polygon
+    /**
+     * Check if point is inside a polygon using ray casting algorithm
+     */
     private boolean isPointInPolygon(Point p, List<Point> polygon) {
         boolean inside = false;
         int n = polygon.size();
@@ -109,7 +130,9 @@ public class SquareShape implements Shape {
         return inside;
     }
 
-    // Calculate distance from point to line segment
+    /**
+     * Calculate distance from point to line segment
+     */
     private double distanceToLineSegment(Point p, Point start, Point end) {
         double lineLength = distance(start, end);
         if (lineLength == 0) return distance(p, start);
@@ -130,7 +153,9 @@ public class SquareShape implements Shape {
                 (p.y - projY) * (p.y - projY));
     }
 
-    // Calculate distance between two points
+    /**
+     * Calculate distance between two points
+     */
     private double distance(Point p1, Point p2) {
         return Math.sqrt((p2.x - p1.x) * (p2.x - p1.x) +
                 (p2.y - p1.y) * (p2.y - p1.y));
@@ -189,7 +214,12 @@ public class SquareShape implements Shape {
         return nearest;
     }
 
-    // Identify which edge the point is on (or close to)
+    /**
+     * Identify which edge the point is on (or close to)
+     *
+     * @param p Point to check
+     * @return Edge index or NO_EDGE if not near any edge
+     */
     public int getNearestEdge(Point p) {
         if (cornerPoints.size() != 4) return NO_EDGE;
 
@@ -210,7 +240,9 @@ public class SquareShape implements Shape {
         return nearestEdge;
     }
 
-    // Method to freely move a corner point (for right-drag)
+    /**
+     * Method to freely move a corner point (for right-drag)
+     */
     public void moveCorner(Point corner, int dx, int dy) {
         for (Point p : cornerPoints) {
             if (distance(p, corner) < 10) {
@@ -222,7 +254,13 @@ public class SquareShape implements Shape {
         }
     }
 
-    // Method for scaling by edge while maintaining square shape
+    /**
+     * Method for scaling by edge while maintaining square shape
+     *
+     * @param edgeIndex Index of the edge being dragged
+     * @param dx Horizontal offset
+     * @param dy Vertical offset
+     */
     public void resizeByEdge(int edgeIndex, int dx, int dy) {
         if (cornerPoints.size() != 4 || edgeIndex < 0 || edgeIndex > 3) return;
 
@@ -318,29 +356,23 @@ public class SquareShape implements Shape {
             Point adjacent2 = cornerPoints.get(adjacentIndex2);
 
             // Update adjacent corners based on the corner being moved
-            // Top-left corner (0)
-            if (cornerIndex == 0) {
+            // to maintain square shape
+            if (cornerIndex == 0) {  // Top-left
                 adjacent1.x = oppositeCorner.x;
                 adjacent1.y = corner.y;
                 adjacent2.x = corner.x;
                 adjacent2.y = oppositeCorner.y;
-            }
-            // Top-right corner (1)
-            else if (cornerIndex == 1) {
+            } else if (cornerIndex == 1) {  // Top-right
                 adjacent1.x = corner.x;
                 adjacent1.y = oppositeCorner.y;
                 adjacent2.x = oppositeCorner.x;
                 adjacent2.y = corner.y;
-            }
-            // Bottom-right corner (2)
-            else if (cornerIndex == 2) {
+            } else if (cornerIndex == 2) {  // Bottom-right
                 adjacent1.x = oppositeCorner.x;
                 adjacent1.y = corner.y;
                 adjacent2.x = corner.x;
                 adjacent2.y = oppositeCorner.y;
-            }
-            // Bottom-left corner (3)
-            else if (cornerIndex == 3) {
+            } else if (cornerIndex == 3) {  // Bottom-left
                 adjacent1.x = corner.x;
                 adjacent1.y = oppositeCorner.y;
                 adjacent2.x = oppositeCorner.x;
@@ -359,7 +391,10 @@ public class SquareShape implements Shape {
         }
     }
 
-    // Getter for corner points (needed for drawing selected edges)
+    /**
+     * Get the corner points of the square
+     * @return List of corner points
+     */
     public List<Point> getCornerPoints() {
         return cornerPoints;
     }

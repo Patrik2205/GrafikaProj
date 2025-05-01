@@ -7,35 +7,50 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+/**
+ * Main application frame that contains the drawing canvas and all UI controls.
+ * Handles tool selection, color choice, and various drawing settings.
+ */
 public class PaintFrame extends JFrame {
     private DrawingCanvas canvas;
     private ResizableCanvasPanel canvasPanel;
 
+    // UI panels
     private JPanel toolPanel;
     private JPanel colorPanel;
     private JPanel lineStylePanel;
     private JPanel eraserPanel;
 
+    // Eraser settings
     private JComboBox<String> eraserModeCombo;
     private EraserMode currentEraserMode = EraserMode.OBJECT;
 
+    // Current drawing settings
     private String currentTool = "Line";
     private Color currentColor = Color.BLACK;
     private int currentThickness = 2;
     private int currentLineStyle = LineStyle.SOLID;
 
+    // Status display
     private JLabel statusLabel;
 
+    // Fill settings
     private JPanel fillPanel;
     private JComboBox<String> fillModeCombo;
     private FillMode currentFillMode = FillMode.OBJECT;
 
-    // Add this method to set fill mode
+    /**
+     * Sets the fill mode (object or flood fill)
+     * @param mode The fill mode to use
+     */
     public void setFillMode(FillMode mode) {
         currentFillMode = mode;
         canvas.setFillMode(mode);
     }
 
+    /**
+     * Creates the main application frame with all UI components
+     */
     public PaintFrame() {
         setTitle("Paint Application");
         setSize(1200, 800);
@@ -77,6 +92,7 @@ public class PaintFrame extends JFrame {
 
         JMenuItem sizeCustom = new JMenuItem("Custom Size...");
         sizeCustom.addActionListener(e -> {
+            // Create a dialog for custom canvas size input
             JTextField widthField = new JTextField(5);
             JTextField heightField = new JTextField(5);
 
@@ -124,6 +140,9 @@ public class PaintFrame extends JFrame {
         setTool("Line");
     }
 
+    /**
+     * Creates all control panels for the UI
+     */
     private void createControlPanels() {
         // Main control panel (top)
         JPanel controlPanel = new JPanel();
@@ -166,6 +185,10 @@ public class PaintFrame extends JFrame {
         add(controlPanel, BorderLayout.NORTH);
     }
 
+    /**
+     * Creates the panel with tool selection buttons
+     * @return The tool panel
+     */
     private JPanel createToolPanel() {
         JPanel panel = new JPanel(new GridLayout(2, 4, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Tools"));
@@ -181,6 +204,10 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates the panel with color selection buttons
+     * @return The color panel
+     */
     private JPanel createColorPanel() {
         JPanel panel = new JPanel(new GridLayout(2, 5, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Colors"));
@@ -201,6 +228,10 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates the panel with line style and thickness controls
+     * @return The line style panel
+     */
     private JPanel createLineStylePanel() {
         JPanel panel = new JPanel(new GridLayout(3, 1, 5, 5));
         panel.setBorder(BorderFactory.createTitledBorder("Line Style"));
@@ -239,7 +270,10 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
-    // Add this method to create eraser controls
+    /**
+     * Creates the panel with eraser-specific controls
+     * @return The eraser panel
+     */
     private JPanel createEraserPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBorder(BorderFactory.createTitledBorder("Eraser Options"));
@@ -277,6 +311,10 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
+    /**
+     * Creates the panel with fill-specific controls
+     * @return The fill panel
+     */
     private JPanel createFillPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBorder(BorderFactory.createTitledBorder("Fill Options"));
@@ -301,13 +339,19 @@ public class PaintFrame extends JFrame {
         return panel;
     }
 
-    // Add this method to set eraser mode
+    /**
+     * Sets the eraser mode (object or pixel)
+     * @param mode The eraser mode to use
+     */
     public void setEraserMode(EraserMode mode) {
         currentEraserMode = mode;
         canvas.setEraserMode(mode);
     }
 
-    // Modify the setTool method to update eraser panel visibility
+    /**
+     * Sets the current drawing tool and updates the UI
+     * @param tool The tool to use
+     */
     public void setTool(String tool) {
         currentTool = tool;
         canvas.setCurrentTool(tool);
@@ -331,6 +375,10 @@ public class PaintFrame extends JFrame {
         }
     }
 
+    /**
+     * Sets the current drawing color and updates the UI
+     * @param color The color to use
+     */
     public void setColor(Color color) {
         currentColor = color;
         canvas.setCurrentColor(color);
@@ -345,11 +393,19 @@ public class PaintFrame extends JFrame {
         }
     }
 
+    /**
+     * Sets the current line thickness
+     * @param thickness The thickness in pixels
+     */
     public void setThickness(int thickness) {
         currentThickness = thickness;
         canvas.setCurrentThickness(thickness);
     }
 
+    /**
+     * Sets the current line style
+     * @param style The line style (solid, dashed, dotted)
+     */
     public void setLineStyle(int style) {
         currentLineStyle = style;
         canvas.setCurrentLineStyle(style);
